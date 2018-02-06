@@ -24,13 +24,31 @@ def softmax_loss_naive(W, X, y, reg):
   loss = 0.0
   dW = np.zeros_like(W)
 
+  D, C = W.shape
+  N, _ = X.shape
+
   #############################################################################
   # TODO: Compute the softmax loss and its gradient using explicit loops.     #
   # Store the loss in loss and the gradient in dW. If you are not careful     #
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+
+  y_ = np.dot(X, W)
+
+  for idx in xrange(N):
+    y_softmax = np.exp(y_[idx]) / np.sum(np.exp(y_[idx]))
+    loss -= np.log2(y_softmax[y[idx]])
+    grad = y_softmax
+    grad[y[idx]] -= 1.0
+    dW += np.reshape(X[idx], (D, 1)) * np.reshape(grad, (1, C))
+
+  loss += 0.5 * reg * np.sum(W ** 2)
+  dW += reg * W
+
+  dW /= N
+  loss /= N
+
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
@@ -48,13 +66,29 @@ def softmax_loss_vectorized(W, X, y, reg):
   loss = 0.0
   dW = np.zeros_like(W)
 
+  D, C = W.shape
+  N, _ = X.shape
+
   #############################################################################
   # TODO: Compute the softmax loss and its gradient using no explicit loops.  #
   # Store the loss in loss and the gradient in dW. If you are not careful     #
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+
+  y_ = np.dot(X, W)
+
+  y_softmax = np.divide(np.exp(y_).T, np.sum(np.exp(y_), axis=1)).T
+  y = y.tolist()
+  loss = -np.log2(y_softmax[range(N), y])
+  grad = y_softmax
+  grad[range(N), y] -= 1.0
+  loss = np.mean(loss)
+  dW = np.reshape(X, (N, D, 1)) * np.reshape(grad, (N, 1, C)) #np.dot(X, grad)
+  loss += 0.5 * reg * np.sum(W ** 2)/N
+  dW = np.mean(dW, 0)
+  dW += reg * W / N
+
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################

@@ -39,15 +39,19 @@ def softmax_loss_naive(W, X, y, reg):
   for idx in xrange(N):
     y_softmax = np.exp(y_[idx]) / np.sum(np.exp(y_[idx]))
     loss -= np.log2(y_softmax[y[idx]])
-    grad = y_softmax
-    grad[y[idx]] -= 1.0
-    dW += np.reshape(X[idx], (D, 1)) * np.reshape(grad, (1, C))
+    # dW[:, ] += y_softmax
+    # dW[y[idx]] -= 1.0
+    for j in xrange(C):
+      dW[:, j] += X[idx] * y_softmax[j]
+    dW[:, y[idx]] -= X[idx]
+
+    # dW += np.reshape(X[idx], (D, 1)) * np.reshape(grad, (1, C))
 
   loss += 0.5 * reg * np.sum(W ** 2)
-  dW += reg * W
 
   dW /= N
   loss /= N
+  dW += reg * W
 
   #############################################################################
   #                          END OF YOUR CODE                                 #

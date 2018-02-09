@@ -33,25 +33,21 @@ def softmax_loss_naive(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-
-  y_ = np.dot(X, W)
-
-  for idx in xrange(N):
-    y_softmax = np.exp(y_[idx]) / np.sum(np.exp(y_[idx]))
-    loss -= np.log2(y_softmax[y[idx]])
-    # dW[:, ] += y_softmax
-    # dW[y[idx]] -= 1.0
+  for i in xrange(N):
+    scores = X[i].dot(W)
+    exp_sum = np.sum(np.exp(scores))
+    probs = np.exp(scores) / exp_sum
+    loss -= np.log(probs[y[i]])
+    dW[:, y[i]] -= X[i]
     for j in xrange(C):
-      dW[:, j] += X[idx] * y_softmax[j]
-    dW[:, y[idx]] -= X[idx]
-
-    # dW += np.reshape(X[idx], (D, 1)) * np.reshape(grad, (1, C))
-
-  loss += 0.5 * reg * np.sum(W ** 2)
+      dW[:,j] += (np.exp(scores[j]) / exp_sum) * X[i]
 
   dW /= N
   loss /= N
+  loss += 0.5 * reg * np.sum(W ** 2)
+
   dW += reg * W
+
 
   #############################################################################
   #                          END OF YOUR CODE                                 #
@@ -80,18 +76,18 @@ def softmax_loss_vectorized(W, X, y, reg):
   # regularization!                                                           #
   #############################################################################
 
-  y_ = np.dot(X, W)
-
-  y_softmax = np.divide(np.exp(y_).T, np.sum(np.exp(y_), axis=1)).T
-  y = y.tolist()
-  loss = -np.log2(y_softmax[range(N), y])
-  grad = y_softmax
-  grad[range(N), y] -= 1.0
-  loss = np.mean(loss)
-  dW = np.reshape(X, (N, D, 1)) * np.reshape(grad, (N, 1, C)) #np.dot(X, grad)
+  scores = np.dot(X, W)
+  exp_scores = np.exp(scores)
+  probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
+  correct_probs = probs[range(N), y]
+  loss = -np.mean(np.log(correct_probs))
   loss += 0.5 * reg * np.sum(W ** 2)/N
-  dW = np.mean(dW, 0)
-  dW += reg * W / N
+
+  grad = probs
+  grad[range(N), y] -= 1.0
+  dW = np.dot(X.T, grad)
+  dW /= N
+  dW += reg * W
 
   #############################################################################
   #                          END OF YOUR CODE                                 #

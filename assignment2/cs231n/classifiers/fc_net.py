@@ -199,9 +199,14 @@ class FullyConnectedNet(object):
         ############################################################################
         dims = [input_dim] + hidden_dims + [num_classes]
         dim_size = len(dims)
-        for i in xrange(dim_size-1):
+        for i in range(dim_size-1):
             self.params['W%s' % (i+1)] = np.random.normal(scale=weight_scale, size=(dims[i], dims[i+1]))
             self.params['b%s' % (i+1)] = np.zeros(dims[i+1])
+        if self.use_batchnorm:
+            for i in range(self.num_layers-1):
+                self.params['gamma%s' % (i+1)] = np.ones(dims[i+1])
+                self.params['beta%s' % (i+1)] = np.zeros(dims[i+1])
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -241,9 +246,12 @@ class FullyConnectedNet(object):
         # behave differently during training and testing.
         if self.use_dropout:
             self.dropout_param['mode'] = mode
+
         if self.use_batchnorm:
             for bn_param in self.bn_params:
                 bn_param['mode'] = mode
+
+
 
         scores = None
         ############################################################################
@@ -259,17 +267,32 @@ class FullyConnectedNet(object):
         # layer, etc.                                                              #
         ############################################################################
         caches = []
-        for i in range(self.num_layers-1):
-            X, cache = affine_relu_forward(X, self.params['W%s' % (i+1)], self.params['b%s' % (i+1)])
+        if not self.use_batchnorm and not self.use_dropout:
+            for i in range(self.num_layers-1):
+                X, cache = affine_relu_forward(X, self.params['W%s' % (i+1)], self.params['b%s' % (i+1)])
+                caches.append(cache)
+            X, cache = affine_forward(X, self.params['W%s' % self.num_layers], self.params['b%s' % self.num_layers])
             caches.append(cache)
-        X, cache = affine_forward(X, self.params['W%s' % self.num_layers], self.params['b%s' % self.num_layers])
-        caches.append(cache)
-        scores = X
+            scores = X
+        elif self.use_batchnorm and not self.use_dropout:
+            for i in range(self.num_layers-1):
+                X, cache = affine_bn_relu_forward(
+                    x=X,
+                    w=self.params['W%s' % (i+1)],
+                    b=self.params['b%s' % (i+1)],
+                    gamma=self.params['gamma%s' % (i+1)],
+                    beta=self.params['beta%s' % (i+1)],
+                    bn_param=self.bn_params[i]
+                )
+                caches.append(cache)
+            X, cache = affine_forward(X, self.params['W%s' % self.num_layers], self.params['b%s' % self.num_layers])
+            caches.append(cache)
+            scores = X
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
 
-        # If test mode return early
+        # If\ test mode return early
         if mode == 'test':
             return scores
 
@@ -287,18 +310,31 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        cache = caches[self.num_layers-1]
+        cache = caches[self.num_layers - 1]
         loss, grad = softmax_loss(scores, y)
         dx, dw, db = affine_backward(grad, cache)
         grads['W%s' % self.num_layers] = dw
         grads['b%s' % self.num_layers] = db
 
-        for i in range(self.num_layers-1):
-            idx = self.num_layers-i-2
-            cache = caches[idx]
-            dx, dw, db = affine_relu_backward(dx, cache)
-            grads['W%s' % (idx + 1)] = dw
-            grads['b%s' % (idx + 1)] = db
+        if not self.use_batchnorm and not self.use_dropout:
+
+            for i in range(self.num_layers - 1):
+                idx = self.num_layers - i - 2
+                cache = caches[idx]
+                dx, dw, db = affine_relu_backward(dx, cache)
+                grads['W%s' % (idx + 1)] = dw
+                grads['b%s' % (idx + 1)] = db
+
+        elif self.use_batchnorm and not self.use_dropout:
+
+            for i in range(self.num_layers - 1):
+                idx = self.num_layers - i - 2
+                cache = caches[idx]
+                dx, dw, db, dgamma, dbeta = affine_bn_relu_backward(dx, cache)
+                grads['W%s' % (idx + 1)] = dw
+                grads['b%s' % (idx + 1)] = db
+                grads['gamma%s' % (idx + 1)] = dgamma
+                grads['beta%s' % (idx + 1)] = dbeta
 
         ############################################################################
         #                             END OF YOUR CODE                             #

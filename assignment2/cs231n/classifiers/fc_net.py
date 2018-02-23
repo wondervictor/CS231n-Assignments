@@ -288,6 +288,18 @@ class FullyConnectedNet(object):
             X, cache = affine_forward(X, self.params['W%s' % self.num_layers], self.params['b%s' % self.num_layers])
             caches.append(cache)
             scores = X
+        elif not self.use_batchnorm and self.use_dropout:
+            for i in range(self.num_layers-1):
+                X, cache = affine_relu_dropout_forward(
+                    x=X,
+                    w=self.params['W%s' % (i+1)],
+                    b=self.params['b%s' % (i+1)],
+                    dropout_param=self.dropout_param
+                )
+                caches.append(cache)
+            X, cache = affine_forward(X, self.params['W%s' % self.num_layers], self.params['b%s' % self.num_layers])
+            caches.append(cache)
+            scores = X
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -335,6 +347,14 @@ class FullyConnectedNet(object):
                 grads['b%s' % (idx + 1)] = db
                 grads['gamma%s' % (idx + 1)] = dgamma
                 grads['beta%s' % (idx + 1)] = dbeta
+        elif not self.use_batchnorm and self.use_dropout:
+            for i in range(self.num_layers - 1):
+                idx = self.num_layers - i - 2
+                cache = caches[idx]
+                dx, dw, db = affine_relu_dropout_backward(dx, cache)
+                grads['W%s' % (idx + 1)] = dw
+                grads['b%s' % (idx + 1)] = db
+
 
         ############################################################################
         #                             END OF YOUR CODE                             #

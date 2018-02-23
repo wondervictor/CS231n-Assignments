@@ -65,6 +65,29 @@ def affine_bn_relu_backward(dout, cache):
     return dx, dw, db, dgamma, dbeta
 
 
+def affine_relu_dropout_forward(x, w, b, dropout_param):
+
+    x, fc_cache = affine_forward(x, w, b)
+    x, relu_cache = relu_forward(x)
+    x, dropout_cache = dropout_forward(x, dropout_param)
+    cache = fc_cache, relu_cache, dropout_cache
+    return x, cache
+
+
+def affine_relu_dropout_backward(dout, cache):
+    """
+    Backward
+    :param dout:
+    :param cache:
+    :return:
+    """
+    fc_cache, relu_cache, dropout_cache = cache
+    dx = dropout_backward(dout, dropout_cache)
+    dx = relu_backward(dx, relu_cache)
+    dx, dw, db = affine_backward(dx, fc_cache)
+    return dx, dw, db
+
+
 def conv_relu_forward(x, w, b, conv_param):
     """
     A convenience layer that performs a convolution followed by a ReLU.

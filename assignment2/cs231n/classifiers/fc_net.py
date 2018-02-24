@@ -339,8 +339,12 @@ class FullyConnectedNet(object):
         ############################################################################
         cache = caches[self.num_layers - 1]
         loss, grad = softmax_loss(scores, y)
+        reg_loss = 0.0
+        for w in [self.params[f] for f in self.params.keys() if f[0] == 'W']:
+            reg_loss += 0.5 * self.reg * np.sum(w * w)
+        loss += reg_loss
         dx, dw, db = affine_backward(grad, cache)
-        grads['W%s' % self.num_layers] = dw
+        grads['W%s' % (idx + 1)] = dw + self.reg * self.params['W%s' % (idx + 1)]
         grads['b%s' % self.num_layers] = db
 
         if not self.use_batchnorm and not self.use_dropout:
@@ -349,7 +353,7 @@ class FullyConnectedNet(object):
                 idx = self.num_layers - i - 2
                 cache = caches[idx]
                 dx, dw, db = affine_relu_backward(dx, cache)
-                grads['W%s' % (idx + 1)] = dw
+                grads['W%s' % (idx + 1)] = dw + self.reg * self.params['W%s' % (idx + 1)]
                 grads['b%s' % (idx + 1)] = db
 
         elif self.use_batchnorm and not self.use_dropout:
@@ -358,7 +362,7 @@ class FullyConnectedNet(object):
                 idx = self.num_layers - i - 2
                 cache = caches[idx]
                 dx, dw, db, dgamma, dbeta = affine_bn_relu_backward(dx, cache)
-                grads['W%s' % (idx + 1)] = dw
+                grads['W%s' % (idx + 1)] = dw + self.reg * self.params['W%s' % (idx + 1)]
                 grads['b%s' % (idx + 1)] = db
                 grads['gamma%s' % (idx + 1)] = dgamma
                 grads['beta%s' % (idx + 1)] = dbeta
@@ -367,14 +371,14 @@ class FullyConnectedNet(object):
                 idx = self.num_layers - i - 2
                 cache = caches[idx]
                 dx, dw, db = affine_relu_dropout_backward(dx, cache)
-                grads['W%s' % (idx + 1)] = dw
+                grads['W%s' % (idx + 1)] = dw + self.reg * self.params['W%s' % (idx + 1)]
                 grads['b%s' % (idx + 1)] = db
         else:
             for i in range(self.num_layers - 1):
                 idx = self.num_layers - i - 2
                 cache = caches[idx]
                 dx, dw, db, dgamma, dbeta = affine_bn_relu_dropout_backward(dx, cache)
-                grads['W%s' % (idx + 1)] = dw
+                grads['W%s' % (idx + 1)] = dw + self.reg * self.params['W%s' % (idx + 1)]
                 grads['b%s' % (idx + 1)] = db
                 grads['gamma%s' % (idx + 1)] = dgamma
                 grads['beta%s' % (idx + 1)] = dbeta

@@ -88,6 +88,42 @@ def affine_relu_dropout_backward(dout, cache):
     return dx, dw, db
 
 
+def affine_bn_relu_dropout_forward(x, w, b, gamma, beta, bn_param, dropout_param):
+
+    """
+    :param x: X
+    :param w: fc weights
+    :param b: fc bias
+    :param gamma: gamma
+    :param beta: beta
+    :param bn_param: batchnorm parameters
+    :param dropout_param: dropout parameter
+    :return:
+    """
+
+    x, fc_cache = affine_forward(x, w, b)
+    x, bn_cache = batchnorm_forward(x, gamma, beta, bn_param)
+    x, relu_cache = relu_forward(x)
+    x, dropout_cache = dropout_forward(x, dropout_param)
+    cache = fc_cache, bn_cache, relu_cache, dropout_cache
+
+    return x, cache
+
+
+def affine_bn_relu_dropout_backward(dout, cache):
+    """
+    :param dout: gradient
+    :param cache:
+    :return:
+    """
+    fc_cache, bn_cache, relu_cache, dropout_cache = cache
+    dx = dropout_backward(dout, dropout_cache)
+    dx = relu_backward(dx, relu_cache)
+    dx, dgamma, dbeta = batchnorm_backward(dx, bn_cache)
+    dx, dw, db = affine_backward(dx, fc_cache)
+    return dx, dw, db, dgamma, dbeta
+
+
 def conv_relu_forward(x, w, b, conv_param):
     """
     A convenience layer that performs a convolution followed by a ReLU.

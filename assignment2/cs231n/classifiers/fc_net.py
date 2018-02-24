@@ -300,6 +300,21 @@ class FullyConnectedNet(object):
             X, cache = affine_forward(X, self.params['W%s' % self.num_layers], self.params['b%s' % self.num_layers])
             caches.append(cache)
             scores = X
+        else:
+            for i in range(self.num_layers-1):
+                X, cache = affine_bn_relu_dropout_forward(
+                    x=X,
+                    w=self.params['W%s' % (i+1)],
+                    b=self.params['b%s' % (i+1)],
+                    gamma=self.params['gamma%s' % (i+1)],
+                    beta=self.params['beta%s' % (i+1)],
+                    bn_param=self.bn_params[i],
+                    dropout_param=self.dropout_param
+                )
+                caches.append(cache)
+            X, cache = affine_forward(X, self.params['W%s' % self.num_layers], self.params['b%s' % self.num_layers])
+            caches.append(cache)
+            scores = X
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -318,7 +333,7 @@ class FullyConnectedNet(object):
         # When using batch normalization, you don't need to regularize the scale   #
         # and shift parameters.                                                    #
         #                                                                          #
-        # NOTE: To ensure that your implementation matches ours and you pass the   #
+        # NOTE: To ensure that yodropout_paramur implementation matches ours and you pass the   #
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
@@ -354,7 +369,15 @@ class FullyConnectedNet(object):
                 dx, dw, db = affine_relu_dropout_backward(dx, cache)
                 grads['W%s' % (idx + 1)] = dw
                 grads['b%s' % (idx + 1)] = db
-
+        else:
+            for i in range(self.num_layers - 1):
+                idx = self.num_layers - i - 2
+                cache = caches[idx]
+                dx, dw, db, dgamma, dbeta = affine_bn_relu_dropout_backward(dx, cache)
+                grads['W%s' % (idx + 1)] = dw
+                grads['b%s' % (idx + 1)] = db
+                grads['gamma%s' % (idx + 1)] = dgamma
+                grads['beta%s' % (idx + 1)] = dbeta
 
         ############################################################################
         #                             END OF YOUR CODE                             #
